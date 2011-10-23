@@ -18,12 +18,12 @@ class BrowserMobProxyHub(object):
     def get_connection(self):
         return httplib.HTTPConnection(self.url)
 
-    def get_proxy(self):
+    def get_proxy(self, capture_headers=False, capture_content=False):
         """Returns a BrowserMobProxy object which exposes the full REST API"""
         conn = self.get_connection()
         conn.request("POST", "/proxy")
         port = json.load(conn.getresponse())['port']
-        return BrowserMobProxy(self, port)
+        return BrowserMobProxy(self, port, capture_headers, capture_content)
 
 class BrowserMobProxy(object):
     """Python wrapper for the BrowserMob Proxy REST API
@@ -32,9 +32,11 @@ class BrowserMobProxy(object):
     separate ports. This class represents them as separate discrete proxies.
     """
 
-    def __init__(self, hub, port):
+    def __init__(self, hub, port, capture_headers=False, capture_content=False):
         self.hub = hub
         self.port = port
+        self.capture_headers = capture_headers
+        self.capture_content = capture_content
         self.headers = {'Content-type': 'application/x-www-form-urlencoded'}
         self.page_count = 1
 
@@ -43,9 +45,16 @@ class BrowserMobProxy(object):
         was a previous HAR. Supports the following parameters:
             initialPageRef - the string name of the first page ref that should be used
             in the HAR. Defaults to "Page 1".
+            capture_headers - If True the HAR will contain request/response headers.
+            capture_content - If True the HAR will contain some content from the page.
+            NOTE: capture_content doesn't seem to be working...
         """
         self.page_count = 1
-        params = urllib.urlencode({'initialPageRef': initialPageRef})
+        params = urllib.urlencode({
+            'initialPageRef': initialPageRef,
+            'captureContent': self.capture_content,
+            'captureHeaders': self.capture_headers,
+            })
         conn = self.hub.get_connection()
         conn.request("PUT", "/proxy/%s/har" % self.port, params,
                 headers=self.headers)
@@ -64,6 +73,15 @@ class BrowserMobProxy(object):
         params = urllib.urlencode({'pageRef': pageRef})
         conn = self.hub.get_connection()
         conn.request("PUT", "/proxy/%s/har/pageRef" % self.port, params,
+                headers=self.headers)
+        res = conn.getresponse()
+        if res.status is 200:
+            return True
+
+    def set_headers(self, headers):
+        params = urllib.urlencode(headers)
+        conn = self.hub.get_connection()
+        conn.request("PUT", "/proxy/%s/headers" % self.port, params,
                 headers=self.headers)
         res = conn.getresponse()
         if res.status is 200:
@@ -123,8 +141,3 @@ class BrowserMobProxy(object):
 if __name__ == '__main__':
     bmp = BrowserMobProxyHub()
     proxy = bmp.get_proxy()
-    proxy.new_har()
-    proxy.new_page()
-    import time
-    time.sleep(10)
-    print proxy.get_har()
