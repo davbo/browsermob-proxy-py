@@ -110,16 +110,18 @@ class BrowserMobProxy(object):
         """
         return self._list('whitelist', regex, status)
 
-    def limit_bandwidth(self, down, up, latency):
+    def limit_bandwidth(self, down=None, up=None, latency=None):
         """Limit the bandwidth through the proxy. Takes the following parameters:
             downstreamKbps - Sets the downstream kbps
             upstreamKbps - Sets the upstream kbps
             latency - Add the given latency to each HTTP request
         """
-        params = urllib.urlencode({'upstreamKbps': up,
-            'downstreamKbps': down,
-            'latency': latency,
-            })
+        if not down and not up and not latency: return False
+        params = dict()
+        if down: params['downstreamKbps'] = down
+        if up: params['upstreamKbps'] = up
+        if latency: params['latency'] = latency
+        params = urllib.urlencode(params)
         conn = self.hub.get_connection()
         conn.request("PUT", "/proxy/%s/limit" % self.port, params,
                 headers=self.headers)
