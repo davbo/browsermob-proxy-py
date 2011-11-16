@@ -1,5 +1,8 @@
 import json, httplib, urllib
 
+
+URL_ENCODED = {'Content-type': 'application/x-www-form-urlencoded'}
+
 class BrowserMobProxyHub(object):
     """The api for creating BrowserMobProxies.
 
@@ -18,10 +21,16 @@ class BrowserMobProxyHub(object):
     def get_connection(self):
         return httplib.HTTPConnection(self.url)
 
-    def get_proxy(self, capture_headers=False, capture_content=False):
+    def get_proxy(self, capture_headers=False, capture_content=False, port=None):
         """Returns a BrowserMobProxy object which exposes the full REST API"""
         conn = self.get_connection()
-        conn.request("POST", "/proxy")
+        if port:
+            params = urllib.urlencode({
+                'port': port,
+                })
+            conn.request("POST", "/proxy", params, headers=URL_ENCODED)
+        else:
+            conn.request("POST", "/proxy")
         port = json.load(conn.getresponse())['port']
         return BrowserMobProxy(self, port, capture_headers, capture_content)
 
@@ -37,7 +46,6 @@ class BrowserMobProxy(object):
         self.port = port
         self.capture_headers = capture_headers
         self.capture_content = capture_content
-        self.headers = {'Content-type': 'application/x-www-form-urlencoded'}
         self.page_count = 1
 
     def new_har(self, initialPageRef="Page 1"):
@@ -57,7 +65,7 @@ class BrowserMobProxy(object):
             })
         conn = self.hub.get_connection()
         conn.request("PUT", "/proxy/%s/har" % self.port, params,
-                headers=self.headers)
+                headers=URL_ENCODED)
         res = conn.getresponse().read()
         if res: return json.loads(res) # This could return an old HAR
         return True
@@ -73,7 +81,7 @@ class BrowserMobProxy(object):
         params = urllib.urlencode({'pageRef': pageRef})
         conn = self.hub.get_connection()
         conn.request("PUT", "/proxy/%s/har/pageRef" % self.port, params,
-                headers=self.headers)
+                headers=URL_ENCODED)
         res = conn.getresponse()
         if res.status is 200:
             return True
@@ -82,7 +90,7 @@ class BrowserMobProxy(object):
         params = urllib.urlencode(headers)
         conn = self.hub.get_connection()
         conn.request("PUT", "/proxy/%s/headers" % self.port, params,
-                headers=self.headers)
+                headers=URL_ENCODED)
         res = conn.getresponse()
         if res.status is 200:
             return True
@@ -91,7 +99,7 @@ class BrowserMobProxy(object):
         params = urllib.urlencode({'regex': regex, 'status': status})
         conn = self.hub.get_connection()
         conn.request("PUT", "/proxy/%s/%s" % (self.port, bw), params,
-                headers=self.headers)
+                headers=URL_ENCODED)
         res = conn.getresponse()
         if res.status is 200:
             return True
@@ -124,7 +132,7 @@ class BrowserMobProxy(object):
         params = urllib.urlencode(params)
         conn = self.hub.get_connection()
         conn.request("PUT", "/proxy/%s/limit" % self.port, params,
-                headers=self.headers)
+                headers=URL_ENCODED)
         res = conn.getresponse()
         if res.status is 200:
             return True
