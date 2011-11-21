@@ -10,7 +10,7 @@ class BrowserMobProxyHub(object):
     proxies running on a single process.
     """
 
-    def __init__(self, hostname='localhost', port='8080'):
+    def __init__(self, hostname='localhost', port=8080):
         self.hostname = hostname
         self.port = port
 
