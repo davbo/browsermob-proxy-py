@@ -87,13 +87,10 @@ class BrowserMobProxy(object):
             return True
 
     def set_headers(self, headers):
-        for name, value in headers.items():
-            params = {'header': "%s:%s" % (name, value)}
-            params = urllib.urlencode(params)
-            conn = self.hub.get_connection()
-            conn.request("PUT", "/proxy/%s/addHeader" % self.port, params,
-                    headers=URL_ENCODED)
-            res = conn.getresponse()
+        headers = json.dumps(headers)
+        conn = self.hub.get_connection()
+        conn.request("POST", "/proxy/%s/headers" % self.port, headers)
+        res = conn.getresponse()
         if res.status is 200:
             return True
 
