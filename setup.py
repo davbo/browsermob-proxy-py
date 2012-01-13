@@ -4,6 +4,6 @@ setup(name='browsermob-proxy',
         author='Dave King',
         author_email='dave@davbo.org',
         url='https://bitbucket.org/davbo/browsermob-proxy-py',
-        version='0.3',
+        version='0.4',
         py_modules=['browsermob'],
         )
